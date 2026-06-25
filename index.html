@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Cuaca Interaktif Chart.js</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 30px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 { color: #1e3a8a; margin-bottom: 5px; }
+        .loading { font-size: 1.2rem; color: #64748b; text-align: center; padding: 40px; }
+        .chart-wrapper { position: relative; height: 400px; width: 100%; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dashboard Ramalan Cuaca Mingguan</h1>
+    <p>Data masa nyata diperoleh secara langsung daripada Open-Meteo API</p>
+    
+    <div id="loader" class="loading">Sedang memuatkan data dari API...</div>
+    
+    <div id="dashboard" style="display: none;">
+        <div class="chart-wrapper">
+            <canvas id="weatherChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+// Koordinat Kuala Lumpur (Boleh ditukar mengikut lokasi pilihan anda)
+const LATITUDE = 3.1390;
+const LONGITUDE = 101.6869;
+const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&daily=temperature_2m_max,relative_humidity_2m_max&timezone=Asia%2FKuala_Lumpur`;
+
+async function dapatkanDataCuaca() {
+    try {
+        const respon = await fetch(API_URL);
+        const data = await respon.json();
+        
+        // Sembunyikan tulisan loading
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        
+        binaCarta(data.daily);
+    } catch (ralat) {
+        console.error("Gagal mengambil data:", ralat);
+        document.getElementById('loader').innerText = "Ralat: Gagal memuatkan data.";
+    }
+}
+
+function binaCarta(dataHarian) {
+    const ctx = document.getElementById('weatherChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dataHarian.time, // Paksi-X (Tarikh 7 hari)
+            datasets: [
+                {
+                    label: 'Suhu Maksimum (°C)',
+                    data: dataHarian.temperature_2m_max,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    yAxisID: 'ySuhu'
+                },
+                {
+                    label: 'Kelembapan (%)',
+                    data: dataHarian.relative_humidity_2m_max,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    yAxisID: 'yKelembapan'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                ySuhu: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Suhu (°C)' }
+                },
+                yKelembapan: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Kelembapan (%)' },
+                    grid: { drawOnChartArea: false } 
+                }
+            }
+        }
+    });
+}
+
+// Jalankan fungsi
+dapatkanDataCuaca();
+</script>
+</body>
+</html>
